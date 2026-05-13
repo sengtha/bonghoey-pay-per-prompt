@@ -7,7 +7,7 @@ This project uses Cloudflare KV to temporarily hold user queries until payment i
 ## 🌟 Features
 * **Zero Database:** Uses Cloudflare KV to store prompts temporarily.
 * **Native Workers AI:** Runs Google's Gemma model directly on Cloudflare's edge network—no external API keys required.
-* **Pay-Per-Prompt:** Users pay exactly 500 KHR per question automatically.
+* **Pay-Per-Prompt:** Users pay exactly 100 or any amount in KHR or USD per question automatically.
 
 ---
 
@@ -21,7 +21,7 @@ This project uses Cloudflare KV to temporarily hold user queries until payment i
 5. Copy this token—you will need it for your Cloudflare settings!
 
 ### Step 2: Create a Cloudflare KV Namespace
-1. Go to your Cloudflare Dashboard -> **Workers & Pages** -> **KV**.
+1. Go to your Cloudflare Dashboard -> ** Storage & Databases ** -> **Workers KV**.
 2. Create a new namespace named `BONGHOEY_KV`.
 3. Copy its **ID** and paste it into the `wrangler.toml` file in this repository.
 
@@ -32,7 +32,7 @@ Deploy this project to Cloudflare via GitHub integration or the command line. On
 Go to your deployed Worker in the Cloudflare Dashboard -> **Settings** -> **Variables and Secrets**, and add the following:
 * `TELEGRAM_BOT_TOKEN`: The API token you got from @BotFather in Step 1.
 * `BONGHOEY_WEBHOOK_SECRET`: Your webhook secret key from your BongHoey Merchant Panel.
-* `BONGHOEY_MERCHANT_LINK`: Your BongHoey checkout link (e.g., `https://bonghoey.io/sengtha`).
+* `BONGHOEY_MERCHANT_LINK`: Set https://bonghoey.io/
 
 ### Step 5: Connect the Webhooks
 For the bot to work, both Telegram and BongHoey need to know where to send data.
