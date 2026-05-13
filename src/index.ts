@@ -46,11 +46,27 @@ export default {
     // ROUTE 2: BongHoey Webhook Handler
     // =========================================================
     if (url.pathname === "/api/bonghoey-webhook" && request.method === "POST") {
-      if (request.headers.get("x-bonghoey-secret") !== env.BONGHOEY_WEBHOOK_SECRET) {
+      
+      // 1. Get the signature from the headers
+      const signature = request.headers.get("x-bonghoey-signature");
+      if (!signature) {
+        return new Response("Missing Signature", { status: 401 });
+      }
+
+      // 2. Read the RAW body text for accurate HMAC calculation
+      const rawBody = await request.text();
+
+      // 3. Verify the signature
+      const isValid = await verifyBonghoeySignature(env.BONGHOEY_WEBHOOK_SECRET, rawBody, signature);
+      if (!isValid) {
+        console.error("❌ Invalid Webhook Signature!");
         return new Response("Unauthorized", { status: 401 });
       }
 
-      const payload: any = await request.json();
+      console.log("✅ Webhook is Authentic!");
+
+      // 4. Safely parse the verified payload
+      const payload: any = JSON.parse(rawBody);
       const transactionId = payload.transaction_id || payload.id; 
       const eventType = payload.event;
 
@@ -109,10 +125,39 @@ export default {
 };
 
 /**
+ * HELPER: Verify HMAC SHA256 Signature using native Web Crypto API
+ */
+async function verifyBonghoeySignature(secret: string, rawBody: string, signature: string): Promise<boolean> {
+  const encoder = new TextEncoder();
+  
+  // Import the secret as a cryptographic key
+  const key = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+
+  // Generate the hash buffer
+  const signatureBuffer = await crypto.subtle.sign(
+    'HMAC',
+    key,
+    encoder.encode(rawBody)
+  );
+
+  // Convert the ArrayBuffer to a hex string
+  const hashArray = Array.from(new Uint8Array(signatureBuffer));
+  const generatedSignature = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+  // Compare the generated hash with the header signature
+  return generatedSignature === signature;
+}
+
+/**
  * HELPER: Call Cloudflare Workers AI natively
  */
 async function callWorkersAI(userPrompt: string, env: Env) {
-  // Uses Cloudflare's hosted Gemma model (update string to exact catalog ID if needed)
   const aiResponse = await env.AI.run('@cf/google/gemma-4-26b-a4b-it', {
     messages: [
       { role: "system", content: DEV_SYSTEM_PROMPT },
