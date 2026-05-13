@@ -1,0 +1,11 @@
+name = "bonghoey-pay-per-prompt"
+main = "src/index.ts"
+compatibility_date = "2026-05-13"
+
+[[kv_namespaces]]
+binding = "BONGHOEY_KV"
+id = "REPLACE_WITH_YOUR_KV_ID_LATER"
+
+# This enables native Workers AI
+[ai]
+binding = "AI"
