@@ -158,15 +158,21 @@ async function verifyBonghoeySignature(secret: string, rawBody: string, signatur
  * HELPER: Call Cloudflare Workers AI natively
  */
 async function callWorkersAI(userPrompt: string, env: Env) {
-  const aiResponse = await env.AI.run('@cf/google/gemma-4-26b-a4b-it', {
+  const aiResponse: any = await env.AI.run('@cf/google/gemma-4-26b-a4b-it', {
     messages: [
       { role: "system", content: DEV_SYSTEM_PROMPT },
       { role: "user", content: userPrompt }
     ]
   });
 
-  return aiResponse.response;
+  // Safely extract the text: 
+  // 1. Try the new OpenAI-compatible format (used by Gemma 4)
+  // 2. Fall back to the legacy Cloudflare format (used by older models)
+  const answer = aiResponse.choices?.[0]?.message?.content || aiResponse.response;
+
+  return answer || "No response generated.";
 }
+
 
 /**
  * HELPER: Send Telegram Message
