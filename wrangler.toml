@@ -4,7 +4,7 @@ compatibility_date = "2026-05-13"
 
 [[kv_namespaces]]
 binding = "BONGHOEY_KV"
-id = "REPLACE_WITH_YOUR_KV_ID_LATER"
+id = "bfe8e607f77a494fb082a82a2fd89c89"
 
 # This enables native Workers AI
 [ai]
