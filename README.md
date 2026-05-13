@@ -40,7 +40,7 @@ For the bot to work, both Telegram and BongHoey need to know where to send data.
 **A. Connect BongHoey:**
 1. Log into your BongHoey Dashboard.
 2. Create Personal or Merchant account. [see this image](Screenshot_20260514_061859_Chrome.jpg)
-3. Set your Webhook URL to: `https://<YOUR_WORKER_URL>/api/bonghoey-webhook`
+3. Set your Webhook URL to: `https://<YOUR_WORKER_URL>/api/bonghoey-webhook` [See this image](Screenshot_20260514_061951_Chrome.jpg)
 
 **B. Connect Telegram:**
 Telegram requires you to manually register your webhook URL. To do this, open a new tab in your web browser and paste the following URL. Make sure to replace `<YOUR_BOT_TOKEN>` and `<YOUR_WORKER_URL>` with your actual details:
