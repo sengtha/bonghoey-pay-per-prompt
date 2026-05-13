@@ -21,7 +21,7 @@ This project uses Cloudflare KV to temporarily hold user queries until payment i
 5. Copy this token—you will need it for your Cloudflare settings!
 
 ### Step 2: Create a Cloudflare KV Namespace
-1. Go to your Cloudflare Dashboard -> ** Storage & Databases ** -> **Workers KV**.
+1. Go to your Cloudflare Dashboard -> **Storage & Databases** -> **Workers KV**.
 2. Create a new namespace named `BONGHOEY_KV`.
 3. Copy its **ID** and paste it into the `wrangler.toml` file in this repository.
 
@@ -39,8 +39,8 @@ For the bot to work, both Telegram and BongHoey need to know where to send data.
 
 **A. Connect BongHoey:**
 1. Log into your BongHoey Dashboard.
-2. Set your Webhook URL to: `https://<YOUR_WORKER_URL>/api/bonghoey-webhook`
-3. Make sure to check the boxes for both **receipt.uploaded** and **receipt.paid**.
+2. Create Personal or Merchant account. [see this image](Screenshot_20260514_061859_Chrome.jpg)
+3. Set your Webhook URL to: `https://<YOUR_WORKER_URL>/api/bonghoey-webhook`
 
 **B. Connect Telegram:**
 Telegram requires you to manually register your webhook URL. To do this, open a new tab in your web browser and paste the following URL. Make sure to replace `<YOUR_BOT_TOKEN>` and `<YOUR_WORKER_URL>` with your actual details:
