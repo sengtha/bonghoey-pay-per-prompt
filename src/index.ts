@@ -113,7 +113,7 @@ export default {
  */
 async function callWorkersAI(userPrompt: string, env: Env) {
   // Uses Cloudflare's hosted Gemma model (update string to exact catalog ID if needed)
-  const aiResponse = await env.AI.run('@cf/google/gemma-2-9b-it', {
+  const aiResponse = await env.AI.run('@cf/google/gemma-4-26b-a4b-it', {
     messages: [
       { role: "system", content: DEV_SYSTEM_PROMPT },
       { role: "user", content: userPrompt }
