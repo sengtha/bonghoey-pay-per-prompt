@@ -55,7 +55,7 @@ export default {
       const eventType = payload.event;
 
       // --- EVENT: Receipt Uploaded ---
-      if (eventType === "receipt.uploaded") {
+      if (eventType === "receipt.paid") {
         const chatId = payload.metadata;
         const question = payload.input_text; 
 
@@ -71,7 +71,7 @@ export default {
       }
 
       // --- EVENT: Payment Verified ---
-      if (eventType === "receipt.paid" || eventType === "receipt.verified") {
+      if (eventType === "receipt.verified") {
         if (!transactionId) return new Response("Missing ID", { status: 400 });
 
         const cachedDataStr = await env.BONGHOEY_KV.get(transactionId);
