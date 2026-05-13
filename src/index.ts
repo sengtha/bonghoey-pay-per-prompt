@@ -6,7 +6,7 @@
 export interface Env {
   TELEGRAM_BOT_TOKEN: string;
   BONGHOEY_WEBHOOK_SECRET: string;
-  BONGHOEY_MERCHANT_LINK: "https://bonghoey.io/";
+  BONGHOEY_MERCHANT_LINK: string;
   BONGHOEY_KV: KVNamespace; 
   AI: any; // Native Cloudflare AI Binding
 }
