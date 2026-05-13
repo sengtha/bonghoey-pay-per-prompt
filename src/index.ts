@@ -73,7 +73,7 @@ export default {
       // --- EVENT: Receipt Uploaded ---
       if (eventType === "receipt.paid") {
         const chatId = payload.metadata;
-        const question = payload.input_text; 
+        const question = payload.sender_input;
 
         if (transactionId && chatId && question) {
           await env.BONGHOEY_KV.put(
