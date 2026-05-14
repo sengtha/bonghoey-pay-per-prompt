@@ -1,6 +1,6 @@
 /**
  * BONGHOEY PAY-PER-PROMPT AI BOT
- * Architecture: Cloudflare Worker + KV + Native Workers AI (Gemma)
+ * Architecture: Cloudflare Worker + KV + Native Workers AI
  */
 
 export interface Env {
@@ -38,12 +38,12 @@ export default {
           `🤖 *Welcome to Pay-Per-Prompt AI (Sample for Testing)*\n\n` +
           `Ask anything for only 100 KHR!\n\n` +
           `1️⃣ Click the link below\n` +
-          `2️⃣ Pay at https://pay.ababank.com/oRF8/4mdpgxm7 (For testing purpose and No refund)  & upload your receipt\n` +
+          `2️⃣ Pay at https://pay.ababank.com/oRF8/4mdpgxm7 (For testing purpose and No refund) & upload your receipt\n` +
           `3️⃣ **Type your question** in the "សំណួរ" field\n\n` +
-          `🧑‍💻 **Source Code** https://github.com/sengtha/bonghoey-pay-per-prompt/ \n\n` +
-          `👉 [Pay & Ask Question](${payLink}) ${payLink}`;
+          `🧑‍💻 **Source Code** https://github.com/sengtha/bonghoey-pay-per-prompt/\n\n` +
+          `👉 [Pay & Ask Question](${payLink})`;
 
-        await sendTelegramMessage(env.TELEGRAM_BOT_TOKEN, chatId, welcomeMessage);
+        await sendTelegramMessage(env.TELEGRAM_BOT_TOKEN, chatId, welcomeMessage, true);
       }
       return new Response("OK");
     }
@@ -53,16 +53,12 @@ export default {
     // =========================================================
     if (url.pathname === "/api/bonghoey-webhook" && request.method === "POST") {
       
-      // 1. Get the signature from the headers
       const signature = request.headers.get("x-bonghoey-signature");
       if (!signature) {
         return new Response("Missing Signature", { status: 401 });
       }
 
-      // 2. Read the RAW body text for accurate HMAC calculation
       const rawBody = await request.text();
-
-      // 3. Verify the signature
       const isValid = await verifyBonghoeySignature(env.BONGHOEY_WEBHOOK_SECRET, rawBody, signature);
       if (!isValid) {
         console.error("❌ Invalid Webhook Signature!");
@@ -71,7 +67,6 @@ export default {
 
       console.log("✅ Webhook is Authentic!");
 
-      // 4. Safely parse the verified payload
       const payload: any = JSON.parse(rawBody);
       const transactionId = payload.transaction_id || payload.id; 
       const eventType = payload.event;
@@ -87,7 +82,7 @@ export default {
             JSON.stringify({ chatId, question }), 
             { expirationTtl: 86400 } 
           );
-          await sendTelegramMessage(env.TELEGRAM_BOT_TOKEN, chatId, "⏳ Receipt received! Verifying your payment...");
+          await sendTelegramMessage(env.TELEGRAM_BOT_TOKEN, chatId, "⏳ Receipt received! Verifying your payment...", false);
         }
         return new Response("Data cached", { status: 200 });
       }
@@ -104,26 +99,31 @@ export default {
 
         const { chatId, question } = JSON.parse(cachedDataStr);
 
-        await sendTelegramMessage(env.TELEGRAM_BOT_TOKEN, chatId, "✅ Payment Verified! Gemma is analyzing your question...");
+        // Agnostic model messaging
+        await sendTelegramMessage(env.TELEGRAM_BOT_TOKEN, chatId, "✅ Payment Verified! The AI is analyzing your question...", false);
 
-        // FIXED: Wrap heavy AI processing in ctx.waitUntil
         ctx.waitUntil((async () => {
+          // CRITICAL FIX: Delete from KV immediately to prevent stuck keys on AI timeout
+          await env.BONGHOEY_KV.delete(transactionId);
+
           try {
-            // Call Cloudflare Workers AI directly
             const answer = await callWorkersAI(question, env);
             
-            await sendTelegramMessage(env.TELEGRAM_BOT_TOKEN, chatId, `🧠 **Gemma Answer:**\n\n${answer}`);
-
-            // Cleanup KV to save space
-            await env.BONGHOEY_KV.delete(transactionId);
+            // Try sending with Markdown formatting first
+            const success = await sendTelegramMessage(env.TELEGRAM_BOT_TOKEN, chatId, `🧠 **Answer:**\n\n${answer}`, true);
+            
+            // If Telegram rejects the markdown formatting, fallback to plain text
+            if (!success) {
+               console.log("Markdown failed, falling back to plain text...");
+               await sendTelegramMessage(env.TELEGRAM_BOT_TOKEN, chatId, `🧠 Answer:\n\n${answer}`, false);
+            }
 
           } catch (error) {
             console.error("[AI ERROR]", error);
-            await sendTelegramMessage(env.TELEGRAM_BOT_TOKEN, chatId, "❌ Sorry, the AI encountered an error.");
+            await sendTelegramMessage(env.TELEGRAM_BOT_TOKEN, chatId, "❌ Sorry, the AI encountered a timeout or processing error.", false);
           }
         })());
 
-        // Returns instantly to BongHoey to prevent timeout while AI works in the background
         return new Response("Processed successfully", { status: 200 });
       }
 
@@ -139,28 +139,12 @@ export default {
  */
 async function verifyBonghoeySignature(secret: string, rawBody: string, signature: string): Promise<boolean> {
   const encoder = new TextEncoder();
-  
-  // Import the secret as a cryptographic key
   const key = await crypto.subtle.importKey(
-    'raw',
-    encoder.encode(secret),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign']
+    'raw', encoder.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
   );
-
-  // Generate the hash buffer
-  const signatureBuffer = await crypto.subtle.sign(
-    'HMAC',
-    key,
-    encoder.encode(rawBody)
-  );
-
-  // Convert the ArrayBuffer to a hex string
+  const signatureBuffer = await crypto.subtle.sign('HMAC', key, encoder.encode(rawBody));
   const hashArray = Array.from(new Uint8Array(signatureBuffer));
   const generatedSignature = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-
-  // Compare the generated hash with the header signature
   return generatedSignature === signature;
 }
 
@@ -168,7 +152,10 @@ async function verifyBonghoeySignature(secret: string, rawBody: string, signatur
  * HELPER: Call Cloudflare Workers AI natively
  */
 async function callWorkersAI(userPrompt: string, env: Env) {
-  const aiResponse: any = await env.AI.run('@cf/moonshotai/kimi-k2.6', {
+  // Update this string to easily swap models globally
+  const modelToUse = '@cf/moonshotai/kimi-k2.6'; 
+
+  const aiResponse: any = await env.AI.run(modelToUse, {
     messages: [
       { role: "system", content: DEV_SYSTEM_PROMPT },
       { role: "user", content: userPrompt }
@@ -176,25 +163,41 @@ async function callWorkersAI(userPrompt: string, env: Env) {
   });
 
   // Safely extract the text: 
-  // 1. Try the new OpenAI-compatible format (used by Gemma 4)
+  // 1. Try the new OpenAI-compatible format (used by modern models)
   // 2. Fall back to the legacy Cloudflare format (used by older models)
   const answer = aiResponse.choices?.[0]?.message?.content || aiResponse.response;
 
   return answer || "No response generated.";
 }
 
-
 /**
- * HELPER: Send Telegram Message
+ * HELPER: Send Telegram Message (Now with Error Handling & Markdown Toggle)
  */
-async function sendTelegramMessage(token: string, chatId: string | number, text: string) {
-  await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ 
-      chat_id: chatId, 
-      text: text, 
-      parse_mode: "Markdown" 
-    })
-  });
+async function sendTelegramMessage(token: string, chatId: string | number, text: string, useMarkdown = false): Promise<boolean> {
+  const payload: any = { 
+    chat_id: chatId, 
+    text: text 
+  };
+  
+  if (useMarkdown) {
+    payload.parse_mode = "Markdown";
+  }
+
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error("Telegram API Rejected Message:", errorText);
+      return false; // Tells the main loop to try again without Markdown
+    }
+    return true;
+  } catch (err) {
+    console.error("Failed to reach Telegram:", err);
+    return false;
+  }
 }
