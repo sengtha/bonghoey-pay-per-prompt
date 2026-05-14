@@ -20,7 +20,8 @@ CRITICAL RULES:
 4. CONCISENESS: Respect the user's time. Be comprehensive but do not ramble.`;
 
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  // FIXED: Added ctx: ExecutionContext
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
 
     // =========================================================
@@ -105,20 +106,24 @@ export default {
 
         await sendTelegramMessage(env.TELEGRAM_BOT_TOKEN, chatId, "✅ Payment Verified! Gemma is analyzing your question...");
 
-        try {
-          // Call Cloudflare Workers AI directly
-          const answer = await callWorkersAI(question, env);
-          
-          await sendTelegramMessage(env.TELEGRAM_BOT_TOKEN, chatId, `🧠 **Gemma Answer:**\n\n${answer}`);
+        // FIXED: Wrap heavy AI processing in ctx.waitUntil
+        ctx.waitUntil((async () => {
+          try {
+            // Call Cloudflare Workers AI directly
+            const answer = await callWorkersAI(question, env);
+            
+            await sendTelegramMessage(env.TELEGRAM_BOT_TOKEN, chatId, `🧠 **Gemma Answer:**\n\n${answer}`);
 
-          // Cleanup KV to save space
-          await env.BONGHOEY_KV.delete(transactionId);
+            // Cleanup KV to save space
+            await env.BONGHOEY_KV.delete(transactionId);
 
-        } catch (error) {
-          console.error("[AI ERROR]", error);
-          await sendTelegramMessage(env.TELEGRAM_BOT_TOKEN, chatId, "❌ Sorry, the AI encountered an error.");
-        }
+          } catch (error) {
+            console.error("[AI ERROR]", error);
+            await sendTelegramMessage(env.TELEGRAM_BOT_TOKEN, chatId, "❌ Sorry, the AI encountered an error.");
+          }
+        })());
 
+        // Returns instantly to BongHoey to prevent timeout while AI works in the background
         return new Response("Processed successfully", { status: 200 });
       }
 
