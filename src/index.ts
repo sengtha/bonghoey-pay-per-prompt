@@ -168,7 +168,7 @@ async function verifyBonghoeySignature(secret: string, rawBody: string, signatur
  * HELPER: Call Cloudflare Workers AI natively
  */
 async function callWorkersAI(userPrompt: string, env: Env) {
-  const aiResponse: any = await env.AI.run('@cf/google/gemma-4-26b-a4b-it', {
+  const aiResponse: any = await env.AI.run('@cf/moonshotai/kimi-k2.6', {
     messages: [
       { role: "system", content: DEV_SYSTEM_PROMPT },
       { role: "user", content: userPrompt }
