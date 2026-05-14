@@ -153,7 +153,7 @@ async function verifyBonghoeySignature(secret: string, rawBody: string, signatur
  */
 async function callWorkersAI(userPrompt: string, env: Env) {
   // Update this string to easily swap models globally
-  const modelToUse = '@cf/moonshotai/kimi-k2.6'; 
+  const modelToUse = '@cf/google/gemma-4-26b-a4b-it'; 
 
   const aiResponse: any = await env.AI.run(modelToUse, {
     messages: [
