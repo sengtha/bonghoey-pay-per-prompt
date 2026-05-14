@@ -39,6 +39,7 @@ export default {
           `1️⃣ Click the link below\n` +
           `2️⃣ Pay at https://pay.ababank.com/oRF8/4mdpgxm7 (For testing purpose and No refund)  & upload your receipt\n` +
           `3️⃣ **Type your question** in the "សំណួរ" field\n\n` +
+          `🧑‍💻 **Source Code** https://github.com/sengtha/bonghoey-pay-per-prompt/ \n\n` +
           `👉 [Pay & Ask Question](${payLink}) ${payLink}`;
 
         await sendTelegramMessage(env.TELEGRAM_BOT_TOKEN, chatId, welcomeMessage);
